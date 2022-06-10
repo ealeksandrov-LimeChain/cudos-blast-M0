@@ -1,1 +1,1 @@
-./packages/blast-core/README.md
+packages/blast-core/README.md
