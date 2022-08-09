@@ -1,14 +1,12 @@
 const {
   CosmWasmClient,
   DirectSecp256k1HdWallet,
-  SigningCosmWasmClient,
-  GasPrice
+  SigningCosmWasmClient
 } = require('cudosjs')
-const { LOCAL_NETWORK } = require('../config/blast-constants')
+const { localNetwork } = require('../config/blast-constants')
 const {
   getNetwork,
-  getAddressPrefix,
-  getGasPrice
+  getAddressPrefix
 } = require('./config-utils')
 const {
   getLocalAccounts,
@@ -20,9 +18,7 @@ const nodeUrl = getNetwork(process.env.BLAST_NETWORK)
 
 async function getSigner(mnemonic) {
   const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, { prefix: getAddressPrefix() })
-  // gasPrice in signing client is considered only when auto gas is used
-  const signer = await SigningCosmWasmClient.connectWithSigner(
-    nodeUrl, wallet, { gasPrice: GasPrice.fromString(getGasPrice()) })
+  const signer = await SigningCosmWasmClient.connectWithSigner(nodeUrl, wallet)
   const address = (await wallet.getAccounts())[0].address
   signer.address = address
   return signer
@@ -33,11 +29,11 @@ async function getDefaultSigner() {
   if (!accounts[0]) {
     throw new BlastError('Cannot get default signer. First account from accounts file is missing')
   }
-  return getSigner(accounts[0].mnemonic)
+  return getSigner(nodeUrl, accounts[0].mnemonic)
 }
 
 function getAccounts() {
-  return (nodeUrl === LOCAL_NETWORK ? getLocalAccounts() : getPrivateAccounts())
+  return (nodeUrl === localNetwork ? getLocalAccounts() : getPrivateAccounts())
 }
 
 async function getContractInfo(contractAddress) {
@@ -49,15 +45,9 @@ async function getContractInfo(contractAddress) {
   }
 }
 
-async function getCodeDetails(codeId) {
-  const client = await CosmWasmClient.connect(nodeUrl)
-  return client.getCodeDetails(codeId)
-}
-
 module.exports = {
   getSigner: getSigner,
   getDefaultSigner: getDefaultSigner,
   getAccounts: getAccounts,
-  getContractInfo: getContractInfo,
-  getCodeDetails: getCodeDetails
+  getContractInfo: getContractInfo
 }

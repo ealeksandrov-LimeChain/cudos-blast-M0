@@ -1,12 +1,15 @@
 const bre = require('cudos-blast')
 
-async function main() {
-  const [alice] = await bre.getSigners()
+async function main () {
+  const [alice, bob] = await bre.getSigners()
   const contract = await bre.getContractFactory('alpha')
-
+  
   const MSG_INIT = { count: 13 }
-  await contract.deploy(MSG_INIT, 'alpha', { signer: alice })
-  console.log(`Contract deployed at: ${contract.getAddress()}`)
+  const deploy = await contract.deploy(MSG_INIT, { signer: bob })
+  const contractAddress = deploy.initTx.contractAddress
+  console.log(`Contract deployed at: ${contractAddress}`)
 }
 
-module.exports = { main: main }
+module.exports = {
+  main: main
+};
