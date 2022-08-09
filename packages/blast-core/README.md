@@ -1,5 +1,4 @@
 # Cudos Blast
-hayaaaaaaaa
 
 Cudos Blast is a Node.js CLI (command line interface) tool for working with the Cudos blockchain. You can scaffold, compile and test your **Rust** smart contracts. JavaScript and Rust testing is supported.
 Utilizing `blast.config.js` it provides a possibility for deploying and interacting with them on a specified network (local, test or public).
