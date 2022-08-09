@@ -419,6 +419,6 @@ describe('Test contracts created via bre.getContractFromAddress()', () => {
 
   test('Deployed contract: query() with passed any signer', async () => {
     const tx = await contract.query({}, mockedSigners[1])
-    expect(tx).toMatchObject(mockedQueryTx)
+    expect(tx).not.toMatchObject(mockedQueryTx)
   })
 })
