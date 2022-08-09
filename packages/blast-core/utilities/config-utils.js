@@ -1,7 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const BlastError = require('./blast-error')
-const { LOCAL_NETWORK } = require('../config/blast-constants')
+const { localNetwork } = require('../config/blast-constants')
 const { getProjectRootPath } = require('./package-info')
 
 // creating global Blast runtime environment to hold exposed core fuctions and possible plugins
@@ -28,7 +28,7 @@ function getNetwork(network) {
     return config.networks[network]
   }
   // network is not passed - return the local network
-  return LOCAL_NETWORK
+  return localNetwork
 }
 
 function getGasPrice() {
@@ -73,7 +73,6 @@ function getRustOptimizerVersion() {
 }
 
 module.exports = {
-  getConfig: getConfig,
   getGasPrice: getGasPrice,
   getAddressPrefix: getAddressPrefix,
   getAdditionalAccounts: getAdditionalAccounts,

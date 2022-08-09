@@ -1,8 +1,6 @@
 const path = require('path')
 const findup = require('find-up')
 
-const BlastError = require('./blast-error')
-
 const PATH_TO_DOCKER_CONFIG = 'config/'
 
 function getDockerComposeInitFile() {
@@ -20,10 +18,6 @@ function getPackageRootPath() {
 
 function getProjectRootPath() {
   const packageJsonPath = findClosestPackageJson('.')
-  if (typeof packageJsonPath === 'undefined') {
-    throw new BlastError('package.json not found.' +
-      'Make sure the current working directory is your Blast project\'s path')
-  }
   return path.dirname(packageJsonPath)
 }
 
