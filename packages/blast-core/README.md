@@ -8,6 +8,8 @@ By using this tool you can also spin up a local [`Cudos node`](https://github.co
 ## Table of Contents
 
 * [Installation](#installation) 
+  * [Local Installation](#local-installation) 
+  * [Global Installation](#global-installation) 
 * [Help and version](#help-and-version) 
 * [Initializing a project](#initializing-a-project) 
 * [Compiling smart contracts](#compiling-smart-contracts) 
@@ -21,6 +23,7 @@ By using this tool you can also spin up a local [`Cudos node`](https://github.co
   * [Available functions in global context](#available-functions-in-global-context)
   * [Exposed functions of a contract instance](#exposed-functions-of-a-contract-instance)
   * [Additional options](#additional-options)
+* [Creating a custom task](#creating-a-custom-task)
 * [Network](#network)
   * [Localhost](#localhost)
   * [Testnet](#testnet)
@@ -37,7 +40,7 @@ Make sure you have [Node.js](https://nodejs.org/en/download/package-manager/) in
 
 | Prerequisite   | Minimum version | Recommended version |
 | ---            | ---             | ---                 |
-| Node.js        | 12.5.0          | 16.10.0             |
+| Node.js        | 14.15.0         | 16.10.0             |
 | npm            | 6.9.0           | 7.24.0              |
 | Docker engine  | 19.03.13        | 20.10.12            |
 | Docker compose | 1.27.4          | 1.29.2              |  
@@ -45,17 +48,25 @@ Make sure you have [Node.js](https://nodejs.org/en/download/package-manager/) in
 > For Windows users we recommend using Windows Subsystem for Linux ([WSL](https://docs.microsoft.com/en-us/windows/wsl/install-manual#downloading-distros)).
 > To avoid permission issues with `WSL`, you may have to [change](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally#manually-change-npms-default-directory) `npm` default directory. 
 
-Install Cudos Blast package:
+Cudos Blast can be used through a local installation in your project or by installing it globally.
+
+### Local Installation
+
+Create an npm project by going to an empty folder, then run
+`npm init`
+ and follow the instructions. Once your project is ready, run 
+`npm install cudos-blast`.
+ To use your local installation of Cudos Blast, use `npx blast`.
+
+### Global Installation
+
+You can let npm completely manage Cudos Blast package just by using `npx cudos-blast` to directly run commands. That way you will always be using the latest version of Cudos Blast so it is possible to have future compatibility issues. We recommend running
 
 ```bash
-npm install cudos-blast
+npm install cudos-blast -g
 ```
 
-Install Cudos Blast globally:
-
-```bash
-npm install -g cudos-blast
-```
+to install globally and using Cudos Blast by `blast` as all the examples in this guide do.
 
 ---
 ## Help and version
@@ -76,10 +87,9 @@ blast --version
 ```
 
 ---
-
 ## Initializing a project
 
-To scaffold a sample project navigate to empty directory and run
+To scaffold a sample project navigate to empty directory (or your npm project for local cudos-blast installation) and run
 
 ```bash
 blast init
@@ -91,7 +101,7 @@ You can also specify the full directory of the project using optional parameter 
 blast init --dir /Your/Location/Here
 ```
 
-The project is now ready to work with the Cudos blockchain. It contains sample smart contracts and scripts to deploy or interact.  
+The project is now ready to work with the Cudos blockchain. It contains sample smart contracts and scripts to deploy or interact. The new project's `npm` dependencies are automatically installed.  
 > Make sure to initialize a new project in a directory other than the local repository folder, or else `cudos-blast` will break and the repository have to be cloned again.  
 > Also, all `blast` commands are designed to be executed from the project root directory.
 
@@ -137,10 +147,10 @@ describe('alpha contract', () => {
 
   // deploying alpha contract once before test cases
   beforeAll(async () => {
-    // function 'getSigners' is available in global context
-    [alice, bob] = await getSigners()
-    contract = await getContractFactory('alpha')
-    await contract.deploy(MSG_INIT, bob)
+    // 'bre' is available in global context
+    [alice, bob] = await bre.getSigners()
+    contract = await bre.getContractFactory('alpha')
+    await contract.deploy(MSG_INIT, 'alpha', { signer: bob })
   })
 
   // positive test case
@@ -165,6 +175,12 @@ Run all test files with
 ```bash
 blast test
 blast test -n testnet
+```
+
+You can also run the tests with disabled console logging and show only essential test result information. To do this use `--silent` or `-s`
+
+```bash
+blast test --silent
 ```
 
 ---
@@ -225,10 +241,10 @@ async function main () {
   const MSG_INIT = { count: 13 }
 
   // deploying the contract with bob as a signer (default signer would be alice)
-  const deploy = await contract.deploy(MSG_INIT, { signer: bob })
+  const deploy = await contract.deploy(MSG_INIT, 'alpha', { signer: bob })
 
   // get useful info such as contractAddress from deploy transaction
-  const contractAddress = deploy.initTx.contractAddress
+  const contractAddress = deploy.instantiateTx.contractAddress
 
   // printing contract address so it can be copied and used in other scripts such as interact.js
   console.log(`Contract deployed at: ${contractAddress}`)
@@ -249,7 +265,7 @@ async function main() {
   const [alice, bob] = await bre.getSigners()
 
   // replace the address with the new one from your deployed smart contract
-  const contract = await bre.getContractFromAddress('cudos1uul3yzm2lgskp3dxpj0zg558hppxk6pt8t00qe', bob)
+  const contract = await bre.getContractFromAddress('cudos1uul3yzm2lgskp3dxpj0zg558hppxk6pt8t00qe')
 // ...
 ```
 
@@ -259,7 +275,7 @@ and run the script to interact with the deployed smart contract.
 blast run scripts/interact.js
 ```
 
-When running scripts through `blast run` the `bre` object in injected. It provides various useful functions to interact with cudos blockchain network. You can also `require` the `cudos-blast` library to access the same functions.
+When running scripts through `blast run` the `bre` object in injected. It provides various useful functions to interact with cudos blockchain network. You can also `require` the `cudos-blast` library to access the same functions and enable your code editor's intellisense.
 
 ```bash
 const bre = require('cudos-blast')
@@ -276,22 +292,35 @@ blast run newFolder/anotherScripts/myCustomScript.js
 
 Here is a list of functions you can use in your scripts.
 
-| Function                                                     | Descripton                                                                                                                                                                                                                                                                           | Sample usage                                                                                      |
-| ---                                                          | ---                                                                                                                                                                                                                                                                                  | ---                                                                                               |
-| async getSigners()                                           | If the local node is used: Returns an array of predefined accounts (`{project_root}/local-accounts.json`) including the auto generated additional accounts.)<br />For other networks: returns an array of user-defined private accounts from `{project_root}/private-accounts.json`. | const [alice, bob] = await bre.getSigners()                                                       |
-| async getContractFactory(contractLabel, signer = null)       | Returns an instance of a new contract by its label. A custom signer can be set. Default signer is the first account from `{project_root}/local-accounts.json`                                                                                                                        | const contract = await bre.getContractFactory('alpha', alice)                                     |
-| async getContractFromAddress(contractAddress, signer = null) | Returns an instance of an existing contract by its address. A custom signer can be set. Default signer is the first account from `{project_root}/local-accounts.json`                                                                                                                | const contract = await bre.getContractFromAddress('cudos1uul3yzm2lgskp3dxpj0zg558hppxk6pt8t00qe') |
+| Function                                      | Descripton                                                                                                                                                                                                                                                                          | Sample usage                                                                                      |
+| ---                                           | ---                                                                                                                                                                                                                                                                                 | ---                                                                                               |
+| async getSigners()                            | If the local node is used: Returns an array of predefined accounts (`{project_root}/local-accounts.json`) including the auto generated additional accounts.<br />For other networks: returns an array of user-defined private accounts from `{project_root}/private-accounts.json`. | const [alice, bob] = await bre.getSigners()                                                       |
+| async getContractFactory(contractLabel)       | Returns an instance of a new contract by its label.                                                                                                                                                                                                                                 | const contract = await bre.getContractFactory('alpha')                                            |
+| async getContractFromCodeId(codeId)           | Returns an instance of a contract whose code is uploaded but not instantiated.                                                                                                                                                                                                      | const contract = await bre.getContractFromCodeId(123)                                             |
+| async getContractFromAddress(contractAddress) | Returns an instance of an on-chain contract by its address.                                                                                                                                                                                                                         | const contract = await bre.getContractFromAddress('cudos1uul3yzm2lgskp3dxpj0zg558hppxk6pt8t00qe') |
 
 You can get an instance of a contract (e.g. with `getContractFactory()`). Here is the functionality such an instance of a contract can offer. 
 
 ### Exposed functions of a contract instance
 
-| Function                                                            | Descripton                                                                                                                                                                                                                                                                                      | Sample usage                                                         |
-| ---                                                                 | ---                                                                                                                                                                                                                                                                                             | ---                                                                  |
-| async deploy(initMsg, signer = undefined, label = undefined, funds) | Deploys the conttract with the given `initMsg`. Optionally you can deploy with a signer and label other than the default ones. The deployer will become the default signer for the contract. You can also pass funds to automatically add selected amount of cudos to a contract on deployment. | const deploy = await contract.deploy(MSG_INIT, undefined, 'myLabel') |
-| async execute(msg, signer = undefined)                              | Executes a transaction within the contract with the given message. Optionally you can execute with a signer other than the deployer.                                                                                                                                                            | const result = await contract.execute(MSG_INCREMENT)                 |
-| async query(queryMsg, signer = undefined)                           | Executes a query within the contract with the given message. Optionally you can make a query with a signer other than the deployer.                                                                                                                                                             | const count = await contract.query(QUERY_GET_COUNT)                  |
-| getAddress()                                                        | Returns the address of a deloyed contract or `null` if the contract is not deployed.                                                                                                                                                                                                            | const address = contract.getAddress()                                |
+| Function                                                                                                    | Descripton                                                                                                                                                                                                                                                                                                                                      | Sample usage                                                            |
+| ---                                                                                                         | ---                                                                                                                                                                                                                                                                                                                                             | ---                                                                     |
+| async uploadCode(options = { signer: null, gasLimit: null, gasMultiplier: null })                           | Uploads the contract's source code on the network so it can be optimally used to instantiate a contract multiple times with different initial state.                                                                                                                              | const uploadTx = await contract.uploadCode()                            |
+| async instantiate(msg, label, options = { signer: null, funds: null, gasLimit: null, gasMultiplier: null }) | Instantiates an uploaded contract with given `initMsg` and `label`. Can be used for undeployed as well as already deployed contracts. The new instantiated contract does not override the current contract object, and therefore it is designed to be accessed by its address. | const instantiateTx = await contract.instantiate(MSG_INIT)              |
+| async deploy(msg, label, options = { signer: null, funds: null })                                           | Deploys the conttract with the given `initMsg`. You cannot use `deploy` on an instance ot contract whose code is already uploaded.                                                                                                                                              | const deployTxs = await contract.deploy(MSG_INIT, { label: 'myLabel' }) |
+| async execute(msg, signer = null, options = { gasLimit: null, gasMultiplier: null })                        | Executes a transaction within the contract with the given message.                                                                                                                                                                                                              | const result = await contract.execute(MSG_INCREMENT, alice)             |
+| async query(queryMsg, signer = null)                                                                        | Executes a query within the contract with the given message.                                                                                                                                                                                                                     | const count = await contract.query(QUERY_GET_COUNT)                     |
+| getAddress()                                                                                                | Returns the address of a deployed contract or null if undeployed.                                                                                                                                                                                                                                                                               | const address = contract.getAddress()                                   |
+| getCodeId()                                                                                                 | Returns the code ID of an uploaded contract or null if unuploaded.                                                                                                                                                                                                                                                                              | const codeId = contract.getCodeId()                                     |
+| getLabel()                                                                                                  | Returns the label of the contract or null if undeployed.                                                                                                                                                                                                                                                                                        | const label = contract.getLabel()                                       |
+| getCreator()                                                                                                | Returns the address of the contract's creator or null if unuploaded.                                                                                                                                                                                                                                                                            | const label = contract.getCreator()                                     |
+  
+| Options object                                                         | Descripton                                                          
+| ---                                                                    | ---                                                                 
+| options = { signer }        | The signer to execute the functionality with. The default signer is the first one returned by `getSigners()`.                 |
+| options = { funds }         | The amount of tokens to fund the newly created contract.                                                                      |
+| options = { gasLimit }      | The maximum limit of gas a transaction can consume. Defaults to "auto".                                                        |
+| options = { gasMultiplier } | `gasLimit` multiplier. Defaults to "auto" or 1.3. `gasMultiplier` is taken into consideration only when auto `gasLimit` is used. |
 
 ### Additional options
 
@@ -305,17 +334,78 @@ blast run scripts/myCustomScript.js -n testnet
 * You can automatically fund smart contracts with tokens in your scripts
 
 ```bash
-const { coin } = require('@cosmjs/stargate')
-
 async function main () {
   const [alice, bob] = await getSigners()
   const contract = await getContractFactory('alpha')
   const MSG_INIT = { count: 13 }
 
-  const tokens = [coin(321, "acudos")]
-  const deploy = await contract.deploy(MSG_INIT, bob, 'alpha', tokens)
+  const deploy = await contract.deploy(MSG_INIT, 'alpha', { signer: bob, fund: 123 })
   // ...
 ```
+
+* Gas fees are calculated and applied per transaction. Note that `deploy()` function submits two separate transactions (upload code + instantiate), and therefore auto `gasLimit` and `gasMultiplier` are used.
+* You can specify gas price from `blast.config.js`. It is used in format `<amount>acudos` 
+
+---
+## Creating a custom task
+
+Cudos Blast allows the creation of custom tasks that can easily run commonly used operations or help manage your workflow.
+This guide shows you how to create a sample task to print a parameter from the CLI.
+
+Let's add the following line in our `blast.config.js` outside of the scope of `module.exports`:
+  
+```js
+require('cudos-blast/utilities/task.js')
+
+task("print", "Prints a custom parameter").setAction(async () => {});
+```
+
+It is a good practice to split your code into several files and `require` them from the config file for more complex tasks.
+
+After adding it, you should be able to see the task and its description in `blast --help`.
+
+```bash
+Usage: blast <command> [arguments] [command options]
+
+Commands:
+  blast init                  Create a sample project
+  blast compile               Compile the smart contracts in the workspace in
+                              alphabetical order
+  blast test                  Run the JavaScript tests
+  blast rusttest              Run smart contracts rust tests
+  blast node                  Manage a local CUDOS node
+  blast run <scriptFilePath>  Run a single script
+  blast keys                  Manage node accounts (keys)
+  blast print                 Prints a custom parameter
+
+Options:
+  --version  Show version number                                       [boolean]
+  --help     Show help                                                 [boolean]
+```
+now let's add a param to our task
+
+```js
+require('cudos-blast/utilities/task.js')
+task("print", "Prints a custom parameter")
+  .addParam("param", "Our custom parameter")
+  .setAction(async (argv) => {
+    console.log(`Printing our param... ${argv.param}`)
+  });
+
+module.exports.config = {
+// ...
+
+```
+
+Now we can simply invoke it by running:
+
+```bash
+blast print --param "important thing to print"
+```
+
+You can add as many parameteres with `.addParam()` as you need.
+
+You should know that every task must end with `.setAction()` so it can take it's place.
 
 ---
 ## Network
@@ -333,19 +423,19 @@ Here are Cudos nodes you can use to connect to Cudos network:
 
 | Chain ID               | URL                                            |
 | ---                    | ---                                            |
-| cudos-testnet-public-2 | https://sentry1.gcp-uscentral1.cudos.org:36657 |
+| cudos-testnet-public-3 | https://sentry1.gcp-uscentral1.cudos.org:36657 |
 
 ### Mainnet
 
-| Chain ID | URL |
-| ---      | --- |
-|          |     |
+| Chain ID       | URL                   |
+| ---            | ---                   |
+|    cudos-1     | https://rpc.cudos.org |
 
 ---
 ## Managing accounts
 
 By default local Cudos node starts with 10 predefined accounts funded with `acudos`. You can set how many additional random accounts to load when starting a local node in `blast.config.js` under `additionalAccounts`. If any additional accounts are added, `customAccountBalances` field must be set for the amount of tokens that these accounts will be funded with. Predefined and additionally generated accounts are written in `{project_root}/local-accounts.json`. Another way to manage custom accounts is through `blast keys` command.  
-You can put your private accounts in `{project_root}/private-accounts.json`. Initializing a new project automatically adds this file to `.gitignore`. **Make sure you keep `private-accounts.json` in `.gitignore` in order to prevent accidentally committing and exposing your private accounts.** 
+You can put your private accounts in `{project_root}/private-accounts.json`. Initializing a new project automatically adds this file to `.gitignore`. **Make sure you keep `private-accounts.json` in `.gitignore` in order to prevent accidentally committing and exposing your private accounts.**. The `private-accounts.json` file is mainly meant to have existing accounts in other networks (testnet, mainnet, etc). If you also want to have these accounts in your local environment, make sure [you add them to your local node keyring](https://docs.cudos.org/build/fundnodes.html#stashing-the-wallet-keys).
 
 ### Listing local node accounts
 
